@@ -1,28 +1,34 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
-	"net/url"
 
 	"github.com/gorilla/websocket"
 )
 
 const (
-	rpc   = `{"jsonrpc": "2.0", "method": "%s", "id": 0, "params": {"query": "%s"}}`
-	query = "tm.event = 'Tx' AND message.action = '/canine_chain.storage.MsgBuyStorage'"
+	rpc      = `{"jsonrpc": "2.0", "method": "%s", "id": 0, "params": {"query": "%s"}}`
+	query    = "tm.event = 'Tx' AND message.action = '/canine_chain.storage.MsgBuyStorage'" // "tm.event = 'NewBlock'"
+	endpoint = "ws://127.0.0.1:26657/websocket"
 )
 
-var (
-	endpoint = url.URL{Scheme: "ws", Host: "127.0.0.1:26657", Path: "/websocket"}
-	ws, _, _ = websocket.DefaultDialer.Dial(endpoint.String(), nil)
-)
+var ws, _, _ = websocket.DefaultDialer.Dial(endpoint, nil)
 
-func send(ws *websocket.Conn, method string) {
+type Response struct {
+	Result struct {
+		Events struct {
+			Buy_storage_bytes_bought []string `json:"buy_storage.bytes_bought"`
+		} `json:"events"`
+	} `json:"result"`
+}
+
+func send(ws *websocket.Conn, method string) { // send one msg
 	ws.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf(rpc, method, query)))
 }
 
-func receive(ws *websocket.Conn) (msg []byte) {
+func receive(ws *websocket.Conn) (msg []byte) { // receive one msg
 	_, msg, err := ws.ReadMessage()
 	if err != nil {
 		log.Println(err)
@@ -32,13 +38,18 @@ func receive(ws *websocket.Conn) (msg []byte) {
 
 func main() {
 	defer ws.Close()
-	go func() { // receive messages
+	go func() { // receive loop
 		for {
 			msg := receive(ws)
 			if msg == nil {
 				break
 			}
-			fmt.Printf("%s\n", msg)
+
+			var response Response
+			json.Unmarshal(msg, &response)
+			if len(response.Result.Events.Buy_storage_bytes_bought) > 0 {
+				fmt.Println(response.Result.Events.Buy_storage_bytes_bought[0])
+			}
 		}
 	}()
 
