@@ -11,19 +11,23 @@ var (
 	rpc      = `{"jsonrpc": "2.0", "method": "%s", "id": 0, "params": {"query": "%s"}}`
 	endpoint = url.URL{Scheme: "ws", Host: "127.0.0.1:26657", Path: "/websocket"}
 	query    = "tm.event = 'Tx' AND message.action = '/canine_chain.storage.MsgBuyStorage'"
+	ws, _, _ = websocket.DefaultDialer.Dial(endpoint.String(), nil)
 )
 
 func send(ws *websocket.Conn, method string) {
 	ws.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf(rpc, method, query)))
 }
 
-func main() {
-	ws, _, _ := websocket.DefaultDialer.Dial(endpoint.String(), nil)
-	defer ws.Close()
+func receive(ws *websocket.Conn) (msg []byte, err error) {
+	_, msg, err = ws.ReadMessage()
+	return msg, err
+}
 
+func main() {
+	defer ws.Close()
 	go func() { // receive messages
 		for {
-			_, msg, err := ws.ReadMessage()
+			msg, err := receive(ws)
 			if err != nil { // handle exit error
 				break
 			}
