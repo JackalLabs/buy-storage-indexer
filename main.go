@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -16,9 +17,9 @@ const (
 )
 
 var (
-	endpoint string
-	cmd      int
-	ws       *websocket.Conn
+	url string
+	cmd int
+	ws  *websocket.Conn
 )
 
 type Response struct {
@@ -32,52 +33,54 @@ type Response struct {
 	} `json:"result"`
 }
 
-func send(ws *websocket.Conn, method string) { // send one msg
-	ws.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf(rpc, method, query)))
+func send(ws *websocket.Conn, c string) { // send one command
+	ws.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf(rpc, c, query)))
 }
 
-func receive(ws *websocket.Conn) (msg []byte) { // receive one msg
-	_, msg, err := ws.ReadMessage()
+func receive(ws *websocket.Conn) (m []byte) { // receive one message
+	_, m, err := ws.ReadMessage()
 	if err != nil {
 		log.Println(err)
 	}
-	return msg
+	return m
 }
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("./buy-storage-indexer [rpc endpoint]")
-		os.Exit(1)
+		log.Fatal("./buy-storage-indexer [rpc ip:port]")
 	}
 
-	log.SetFlags(log.Ldate | log.Ltime)
-	file, err := os.OpenFile("indexer.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o666)
+	f, err := os.OpenFile("indexer.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o666)
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.SetOutput(file)
+	defer f.Close()
+	log.SetOutput(f)
 
-	endpoint = "ws://" + os.Args[1] + "/websocket"
-	ws, _, _ = websocket.DefaultDialer.Dial(endpoint, nil)
+	url = "ws://" + os.Args[1] + "/websocket"
+	ws, _, err = websocket.DefaultDialer.Dial(url, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
 	defer ws.Close()
 
 	go func() { // receive loop
 		for {
-			msg := receive(ws)
-			if msg == nil {
+			m := receive(ws)
+			if m == nil {
 				break
 			}
-			log.Println(string(msg))
+			log.Println(string(m))
 
 			var response Response
-			json.Unmarshal(msg, &response)
+			json.Unmarshal(m, &response)
 			if len(response.Result.Events.Bytes) > 0 {
-				bytes, _ := strconv.ParseFloat(response.Result.Events.Bytes[0], 64)
-				hours, _ := strconv.ParseFloat(response.Result.Events.Hours[0], 64)
+				b, _ := strconv.ParseFloat(response.Result.Events.Bytes[0], 64)
+				h, _ := strconv.ParseFloat(response.Result.Events.Hours[0], 64)
 				fmt.Printf(
-					"%.2f gb %.2f days - buyer %s in %s\n",
-					bytes/(1<<30),
-					hours/24,
+					"%s | %.2f gb %.2f days | buyer %s in %s\n",
+					time.Now().Format("01-02-2006 15:04:05"),
+					b/(1<<30), -h/24,
 					response.Result.Events.Buyer[0],
 					response.Result.Events.Tx[0],
 				)

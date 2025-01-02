@@ -3,5 +3,5 @@ Onboarding Project: subscribes to Jackal Protocol chain over websocket and liste
 
 # Usage
 ```
-./buy-storage-indexer [rpc endpoint]
+./buy-storage-indexer [rpc ip:port]
 ```
