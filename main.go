@@ -1,3 +1,4 @@
+// buy-storage-indexer monitors the Jackal Protocol for buy storage events through WebSocket
 package main
 
 import (
@@ -16,11 +17,7 @@ const (
 	query = "tm.event = 'Tx' AND message.action = '/canine_chain.storage.MsgBuyStorage'"
 )
 
-var (
-	url string
-	cmd int
-	ws  *websocket.Conn
-)
+var ws *websocket.Conn
 
 type Response struct {
 	Result struct {
@@ -45,7 +42,7 @@ func receive(ws *websocket.Conn) (m []byte) { // receive one message
 	return m
 }
 
-func main() {
+func init() {
 	if len(os.Args) < 2 {
 		log.Fatal("./buy-storage-indexer [rpc ip:port]")
 	}
@@ -57,11 +54,14 @@ func main() {
 	defer f.Close()
 	log.SetOutput(f)
 
-	url = "ws://" + os.Args[1] + "/websocket"
+	url := "ws://" + os.Args[1] + "/websocket"
 	ws, _, err = websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func main() {
 	defer ws.Close()
 
 	go func() { // receive loop
@@ -80,7 +80,7 @@ func main() {
 				fmt.Printf(
 					"%s | %.2f gb %.2f days | buyer %s in %s\n",
 					time.Now().Format("01-02-2006 15:04:05"),
-					b/(1<<30), -h/24,
+					b/(1<<30), h/24,
 					response.Result.Events.Buyer[0],
 					response.Result.Events.Tx[0],
 				)
@@ -88,6 +88,7 @@ func main() {
 		}
 	}()
 
+	var cmd int
 loop:
 	for {
 		fmt.Println("1: Subscribe 2: Unsubscribe 3: Exit")
