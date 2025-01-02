@@ -4,18 +4,22 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"strconv"
 
 	"github.com/gorilla/websocket"
 )
 
 const (
-	rpc      = `{"jsonrpc": "2.0", "method": "%s", "id": 0, "params": {"query": "%s"}}`
-	query    = "tm.event = 'Tx' AND message.action = '/canine_chain.storage.MsgBuyStorage'"
-	endpoint = "ws://127.0.0.1:26657/websocket"
+	rpc   = `{"jsonrpc": "2.0", "method": "%s", "id": 0, "params": {"query": "%s"}}`
+	query = "tm.event = 'Tx' AND message.action = '/canine_chain.storage.MsgBuyStorage'"
 )
 
-var ws, _, _ = websocket.DefaultDialer.Dial(endpoint, nil)
+var (
+	endpoint string
+	cmd      int
+	ws       *websocket.Conn
+)
 
 type Response struct {
 	Result struct {
@@ -41,13 +45,29 @@ func receive(ws *websocket.Conn) (msg []byte) { // receive one msg
 }
 
 func main() {
+	if len(os.Args) < 2 {
+		fmt.Println("./buy-storage-indexer [rpc endpoint]")
+		os.Exit(1)
+	}
+
+	log.SetFlags(log.Ldate | log.Ltime)
+	file, err := os.OpenFile("indexer.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o666)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.SetOutput(file)
+
+	endpoint = "ws://" + os.Args[1] + "/websocket"
+	ws, _, _ = websocket.DefaultDialer.Dial(endpoint, nil)
 	defer ws.Close()
+
 	go func() { // receive loop
 		for {
 			msg := receive(ws)
 			if msg == nil {
 				break
 			}
+			log.Println(string(msg))
 
 			var response Response
 			json.Unmarshal(msg, &response)
@@ -65,7 +85,6 @@ func main() {
 		}
 	}()
 
-	var cmd int
 loop:
 	for {
 		fmt.Println("1: Subscribe 2: Unsubscribe 3: Exit")
