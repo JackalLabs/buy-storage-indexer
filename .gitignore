@@ -27,6 +27,3 @@ go.work.sum
 # Test data and logs
 data.txt
 indexer.log
-
-# Rust experimentation
-main
