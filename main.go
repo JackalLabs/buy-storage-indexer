@@ -22,10 +22,11 @@ var ws *websocket.Conn
 type Response struct {
 	Result struct {
 		Events struct {
-			Bytes []string `json:"buy_storage.bytes_bought"`
-			Hours []string `json:"buy_storage.hours_bought"`
-			Buyer []string `json:"buy_storage.buyer"`
-			Tx    []string `json:"tx.hash"`
+			Buyer    []string `json:"buy_storage.buyer"`
+			Receiver []string `json:"buy_storage.receiver"`
+			Bytes    []string `json:"buy_storage.bytes_bought"`
+			Hours    []string `json:"buy_storage.hours_bought"`
+			Tx       []string `json:"tx.hash"`
 		} `json:"events"`
 	} `json:"result"`
 }
@@ -47,7 +48,7 @@ func init() {
 		log.Fatal("./buy-storage-indexer [rpc ip:port]")
 	}
 
-	f, err := os.OpenFile("indexer.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o666)
+	f, err := os.OpenFile("indexer.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o666)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -78,10 +79,11 @@ func main() {
 				b, _ := strconv.ParseFloat(response.Result.Events.Bytes[0], 64)
 				h, _ := strconv.ParseFloat(response.Result.Events.Hours[0], 64)
 				fmt.Printf(
-					"%s | %.2f gb %.2f days | buyer %s in %s\n",
-					time.Now().Format("01-02-2006 15:04:05"),
+					"%s | %.2f gb %.2f days  %s buyer %s receiver %s tx\n",
+					time.Now().Format("2006-01-02 15:04:05"),
 					b/(1<<30), h/24,
 					response.Result.Events.Buyer[0],
+					response.Result.Events.Receiver[0],
 					response.Result.Events.Tx[0],
 				)
 			}
