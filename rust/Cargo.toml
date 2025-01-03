@@ -1,0 +1,7 @@
+[package]
+name = "buy-storage-indexer"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tungstenite = { version = "0.26.1", features = ["native-tls"] }
