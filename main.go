@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"testing"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -44,21 +45,23 @@ func receive(ws *websocket.Conn) (m []byte) { // receive one message
 }
 
 func init() {
-	if len(os.Args) < 2 {
-		log.Fatal("./buy-storage-indexer [rpc ip:port]")
-	}
+	if !testing.Testing() {
+		if len(os.Args) < 2 {
+			log.Fatal("./buy-storage-indexer [rpc ip:port]")
+		}
 
-	f, err := os.OpenFile("indexer.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o666)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer f.Close()
-	log.SetOutput(f)
+		f, err := os.OpenFile("indexer.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o666)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer f.Close()
+		log.SetOutput(f)
 
-	url := "ws://" + os.Args[1] + "/websocket"
-	ws, _, err = websocket.DefaultDialer.Dial(url, nil)
-	if err != nil {
-		log.Fatal(err)
+		url := "ws://" + os.Args[1] + "/websocket"
+		ws, _, err = websocket.DefaultDialer.Dial(url, nil)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }
 
