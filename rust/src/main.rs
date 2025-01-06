@@ -26,7 +26,34 @@ fn main() {
             msg = socket.read().expect("disconnect").to_string();
             msg_json = from_str(&msg).expect("invalid json");
             if msg.contains("MsgBuyStorage") {
-                println!("{}", msg_json["result"]["events"]["tx.hash"][0].as_str().unwrap());
+                let now: chrono::DateTime<chrono::Utc> = chrono::Utc::now();
+                let bytes = msg_json["result"]["events"]
+                    ["buy_storage.bytes_bought"][0]
+                    .as_str()
+                    .unwrap()
+                    .parse::<f64>()
+                    .unwrap();
+                let hours = msg_json["result"]["events"]
+                    ["buy_storage.hours_bought"][0]
+                    .as_str()
+                    .unwrap()
+                    .parse::<f64>()
+                    .unwrap();
+                println!(
+                    "{} | {:.2} gb {:.2} days {} buyer {} receiver {} tx",
+                    now.format("%F %T").to_string(),
+                    bytes / f64::from(1 << 30),
+                    hours / f64::from(24),
+                    msg_json["result"]["events"]["buy_storage.buyer"][0]
+                        .as_str()
+                        .unwrap(),
+                    msg_json["result"]["events"]["buy_storage.receiver"][0]
+                        .as_str()
+                        .unwrap(),
+                    msg_json["result"]["events"]["tx.hash"][0]
+                        .as_str()
+                        .unwrap()
+                );
             }
         }
     } else if cmd == 3 {
