@@ -82,7 +82,7 @@ func main() {
 				b, _ := strconv.ParseFloat(response.Result.Events.Bytes[0], 64)
 				h, _ := strconv.ParseFloat(response.Result.Events.Hours[0], 64)
 				fmt.Printf(
-					"%s | %.2f gb %.2f days  %s buyer %s receiver %s tx\n",
+					"%s | %.2f gb %.2f days %s buyer %s receiver %s tx\n",
 					time.Now().Format("2006-01-02 15:04:05"),
 					b/(1<<30), h/24,
 					response.Result.Events.Buyer[0],
